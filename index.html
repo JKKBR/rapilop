@@ -14,20 +14,34 @@
 </head>
 <body>
   <h1>Portal de Vagas</h1>
+  <div id="lista-vagas"></div>
 
-  <div class="vaga">
-    <h2>Auxiliar Administrativo</h2>
-    <p>Empresa: Exemplo Ltda</p>
-    <p>Local: Rio de Janeiro</p>
-    <a class="botao" href="https://www.riovagas.com.br/vaga-exemplo" target="_blank">Ver detalhes</a>
-  </div>
+  <script>
+    async function carregarVagas() {
+      try {
+        const response = await fetch('vagas.json');
+        const vagas = await response.json();
 
-  <div class="vaga">
-    <h2>Security Consultant</h2>
-    <p>Empresa: Google</p>
-    <p>Local: Rio de Janeiro</p>
-    <a class="botao" href="https://careers.google.com/jobs/results/123456" target="_blank">Ver detalhes</a>
-  </div>
+        const container = document.getElementById('lista-vagas');
+        container.innerHTML = '';
 
+        vagas.forEach(vaga => {
+          const div = document.createElement('div');
+          div.className = 'vaga';
+          div.innerHTML = `
+            <h2>${vaga.titulo}</h2>
+            <p>Empresa: ${vaga.empresa}</p>
+            <p>Local: ${vaga.local}</p>
+            <a class="botao" href="${vaga.link}" target="_blank">Ver detalhes</a>
+          `;
+          container.appendChild(div);
+        });
+      } catch (error) {
+        console.error("Erro ao carregar vagas:", error);
+      }
+    }
+
+    carregarVagas();
+  </script>
 </body>
 </html>
