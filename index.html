@@ -5,17 +5,28 @@
   <meta charset="utf-8" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <style>
-    #map { height: 600px; width: 70%; float: left; }
-    #painel { width: 28%; float: right; padding: 10px; border-left: 1px solid #ccc; overflow-y: scroll; height: 600px; }
+    #map { height: 500px; width: 70%; float: left; }
+    #painel { width: 28%; float: right; padding: 10px; border-left: 1px solid #ccc; overflow-y: scroll; height: 500px; }
     .veiculo { margin-bottom: 10px; padding: 5px; border: 1px solid #ddd; }
     .rodando { background-color: #e0ffe0; }
     .parado { background-color: #ffe0e0; }
+    #streetview { width: 100%; height: 400px; margin-top: 20px; }
   </style>
 </head>
 <body>
-  <h2>Simulador de Frota - 20 Veículos</h2>
+  <h2 style="text-align:center;">Simulador de Frota - 20 Veículos</h2>
   <div id="map"></div>
-  <div id="painel"></div>
+  <div id="painel">
+    <h3>Rotas de Transporte</h3>
+  </div>
+
+  <h3 style="text-align:center;">Visão da Rua</h3>
+  <iframe 
+    id="streetview" 
+    style="border:0;" 
+    allowfullscreen 
+    loading="lazy">
+  </iframe>
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script>
@@ -29,7 +40,7 @@
     function gerarPlaca() {
       const numeros = Math.floor(10000 + Math.random() * 90000).toString();
       const letras = Array(3).fill(0).map(() => String.fromCharCode(65 + Math.floor(Math.random() * 26))).join('');
-      return numeros + letras; // Exemplo: 54321XYZ
+      return numeros + letras;
     }
 
     // Locais fictícios
@@ -44,12 +55,10 @@
         placa: gerarPlaca(),
         lat: -22.9068 + (Math.random() - 0.5) * 0.1,
         lng: -43.1729 + (Math.random() - 0.5) * 0.1,
-        rota: locais.slice(), // rota fictícia
+        rota: locais.slice(),
         localAtual: locais[0],
         status: "Rodando",
-        tempoInicio: Date.now(),
-        tempoParado: 0,
-        tempoRodando: 0
+        tempoInicio: Date.now()
       });
     }
 
@@ -57,12 +66,17 @@
     var markers = {};
     vehicles.forEach(v => {
       markers[v.id] = L.marker([v.lat, v.lng]).addTo(map).bindPopup(v.name + " - Placa: " + v.placa);
+
+      // Evento de clique no marcador -> mostra Street View
+      markers[v.id].on('click', () => {
+        mostrarRua(v.lat, v.lng);
+      });
     });
 
     // Atualizar painel
     function atualizarPainel() {
       const painel = document.getElementById('painel');
-      painel.innerHTML = '';
+      painel.innerHTML = '<h3>Rotas de Transporte</h3>';
       vehicles.forEach(v => {
         const tempoAtual = ((Date.now() - v.tempoInicio) / 1000).toFixed(0);
         const div = document.createElement('div');
@@ -88,14 +102,12 @@
           v.lng += (Math.random() - 0.5) * 0.01;
           markers[v.id].setLatLng([v.lat, v.lng]);
 
-          // Chance de chegar a um cliente e parar
           if (Math.random() < 0.1) {
             v.status = "Parado";
             v.localAtual = v.rota[Math.floor(Math.random() * v.rota.length)];
             v.tempoInicio = Date.now();
           }
         } else {
-          // Chance de voltar a rodar
           if (Math.random() < 0.3) {
             v.status = "Rodando";
             v.localAtual = "Em rota para próximo cliente";
@@ -105,6 +117,13 @@
       });
       atualizarPainel();
     }, 3000);
+
+    // Mostrar visão da rua (Google Street View)
+    function mostrarRua(lat, lng) {
+      const streetview = document.getElementById('streetview');
+      // IMPORTANTE: substitua SUA_API_KEY por uma chave válida da Google Maps Embed API
+      streetview.src = `https://www.google.com/maps/embed/v1/streetview?location=${lat},${lng}&key=SUA_API_KEY`;
+    }
   </script>
 </body>
 </html>
