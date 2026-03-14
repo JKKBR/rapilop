@@ -5,62 +5,40 @@
   <meta charset="utf-8" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <style>
-    body { 
-      font-family: Arial, sans-serif; 
-      background-color: #f4f4f4; 
-      margin: 0; 
-      padding: 0;
-    }
+    body { font-family: Arial, sans-serif; background:#f4f4f4; margin:0; padding:0; }
     h1 { text-align:center; margin-bottom:5px; }
     h2 { text-align:center; margin-top:0; font-weight:normal; color:#555; }
     #resumo {
-      text-align:center; 
-      margin:20px auto; 
-      max-width:800px; 
-      background:#ffffff; 
-      padding:20px; 
-      border-radius:8px; 
-      box-shadow:0 2px 6px rgba(0,0,0,0.1);
+      text-align:center; margin:20px auto; max-width:800px; background:#fff; padding:20px;
+      border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,0.1);
     }
-    #map { height: 400px; width: 70%; float: left; }
-    #painel { width: 28%; float: right; padding: 10px; border-left: 1px solid #ccc; overflow-y: scroll; height: 400px; background:#fff; }
-    .veiculo { margin-bottom: 10px; padding: 5px; border: 1px solid #ddd; }
-    .rodando { background-color: #e0ffe0; }
-    .parado { background-color: #ffe0e0; }
-    #mapStreet { height: 400px; width: 70%; float: left; margin-top:20px; }
-    #painelSeguranca { width: 28%; float: right; height: 400px; overflow-y: scroll; border-left:1px solid #ccc; padding:10px; margin-top:20px; background:#fff; }
-    #cameraView { width:100%; height:300px; object-fit:cover; border:1px solid #ccc; margin-top:20px; clear:both; background:#fff; }
-    #dashboard { display:flex; justify-content:space-around; flex-wrap:wrap; margin-top:20px; clear:both; }
+    #map { height:400px; width:100%; margin-top:20px; }
+    #painelContainer { display:flex; justify-content:space-between; margin-top:20px; }
+    #painelRotas, #painelSeguranca, #painelCamera {
+      flex:1; margin:10px; background:#fff; padding:15px; border-radius:8px;
+      box-shadow:0 2px 6px rgba(0,0,0,0.1); overflow-y:auto; max-height:300px;
+    }
+    #cameraView { width:100%; height:250px; object-fit:cover; border:1px solid #ccc; }
+    .veiculo { margin-bottom:10px; padding:5px; border:1px solid #ddd; }
+    .rodando { background:#e0ffe0; }
+    .parado { background:#ffe0e0; }
+    #dashboard { display:flex; justify-content:space-around; flex-wrap:wrap; margin-top:20px; }
     .card {
-      background:#fff;
-      border-radius:8px;
-      box-shadow:0 2px 6px rgba(0,0,0,0.1);
-      padding:15px;
-      margin:10px;
-      flex:1 1 200px;
-      text-align:center;
+      background:#fff; border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,0.1);
+      padding:15px; margin:10px; flex:1 1 200px; text-align:center;
     }
     .card h4 { margin:0 0 10px; color:#333; }
     .card span { font-size:20px; font-weight:bold; }
+    canvas { max-width:300px; margin:10px; }
     .custom-icon div {
-      background:#007bff;
-      color:white;
-      border-radius:50%;
-      width:30px;
-      height:30px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-size:14px;
-      font-weight:bold;
+      background:#007bff; color:white; border-radius:50%; width:30px; height:30px;
+      display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:bold;
     }
   </style>
 </head>
 <body>
   <h1>Projeto Simulador de Frota</h1>
   <h2>Juntando Redes de Computadores, Logística e CFTV</h2>
-
-  <!-- Resumo -->
   <div id="resumo">
     <h3>Resumo do Projeto</h3>
     <p>
@@ -75,80 +53,70 @@
       e verificações de segurança.
     </p>
   </div>
-  
-  <!-- Mapa principal -->
+
+  <!-- Mapa -->
   <div id="map"></div>
-  <div id="painel">
-    <h3>Rotas de Transporte</h3>
-  </div>
 
-  <!-- Mapa secundário -->
-  <h3 style="text-align:center; clear:both;">Mapa Secundário - Frota</h3>
-  <div id="mapStreet"></div>
-  <div id="painelSeguranca">
-    <h3>Painel de Segurança</h3>
+  <!-- Painéis abaixo do mapa -->
+  <div id="painelContainer">
+    <div id="painelRotas"><h3>Rotas de Transporte</h3></div>
+    <div id="painelSeguranca"><h3>Painel de Segurança</h3></div>
+    <div id="painelCamera"><h3>Câmeras</h3><img id="cameraView" src="" alt="Câmera embarcada" /></div>
   </div>
-
-  <!-- Câmera embarcada -->
-  <h3 style="text-align:center; clear:both;">Câmera Embarcada</h3>
-  <img id="cameraView" src="" alt="Câmera embarcada" />
 
   <!-- Dashboard -->
   <h3 style="text-align:center; clear:both;">Dashboard Logístico</h3>
   <div id="dashboard">
     <div class="card" style="border-top:4px solid #007bff;">
-      <h4>Total de Entregas</h4>
-      <span id="totalEntregas">0</span>
+      <h4>Total de Entregas</h4><span id="totalEntregas">0</span>
     </div>
     <div class="card" style="border-top:4px solid #dc3545;">
-      <h4>Verificações de Segurança</h4>
-      <span id="totalVerificacoes">0</span>
+      <h4>Verificações de Segurança</h4><span id="totalVerificacoes">0</span>
     </div>
     <div class="card" style="border-top:4px solid #28a745;">
-      <h4>Tempo Médio Rodando</h4>
-      <span id="tempoRodando">0</span> s
+      <h4>Tempo Médio Rodando</h4><span id="tempoRodando">0</span> s
     </div>
     <div class="card" style="border-top:4px solid #ffc107;">
-      <h4>Tempo Médio Parado</h4>
-      <span id="tempoParado">0</span> s
+      <h4>Tempo Médio Parado</h4><span id="tempoParado">0</span> s
     </div>
   </div>
 
   <!-- Gráficos -->
-  <canvas id="graficoEntregas" width="400" height="200"></canvas>
-  <canvas id="graficoVerificacoes" width="400" height="200"></canvas>
-  <canvas id="graficoTempo" width="400" height="200"></canvas>
+  <div style="display:flex; justify-content:center; flex-wrap:wrap;">
+    <canvas id="graficoEntregas"></canvas>
+    <canvas id="graficoVerificacoes"></canvas>
+    <canvas id="graficoTempo"></canvas>
+  </div>
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
-    // Inicializa mapas
     var map = L.map('map').setView([-22.9068, -43.1729], 12);
-    var mapStreet = L.map('mapStreet').setView([-22.9068, -43.1729], 12);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: 'Map data © OpenStreetMap' }).addTo(map);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: 'Map data © OpenStreetMap' }).addTo(mapStreet);
 
-    // Função para gerar placa fictícia
     function gerarPlaca() {
       const numeros = Math.floor(10000 + Math.random() * 90000).toString();
       const letras = Array(3).fill(0).map(() => String.fromCharCode(65 + Math.floor(Math.random() * 26))).join('');
       return numeros + letras;
     }
 
-    // Locais fictícios
-    const locais = ["Depósito Central", "Cliente A", "Cliente B", "Cliente C", "Cliente D"];
-
-    // Criar veículos
     var vehicles = [];
+    var rotas = [];
     for (let i = 1; i <= 20; i++) {
+      let rota = [
+        [-22.9068, -43.1729], // depósito
+        [-22.9068 + (Math.random()-0.5)*0.2, -43.1729 + (Math.random()-0.5)*0.2],
+        [-22.9068 + (Math.random()-0.5)*0.2, -43.1729 + (Math.random()-0.5)*0.2]
+      ];
+      rotas.push(rota);
+      L.polyline(rota, {color: 'blue'}).addTo(map);
+
       vehicles.push({
         id: i,
         name: "Veículo " + i,
         placa: gerarPlaca(),
-        lat: -22.9068 + (Math.random() - 0.5) * 0.1,
-        lng: -43.1729 + (Math.random() - 0.5) * 0.1,
-        rota: locais.slice(),
-        localAtual: locais[0],
+        rota: rota,
+        posIndex: 0,
         status: "Rodando",
         tempoInicio: Date.now(),
         entregas: 0,
@@ -156,8 +124,7 @@
       });
     }
 
-       // Marcadores com ícones personalizados
-    var markers = {}, markersStreet = {};
+    var markers = {};
     vehicles.forEach(v => {
       var icon = L.divIcon({
         className: 'custom-icon',
@@ -165,19 +132,13 @@
         iconSize: [30, 30],
         iconAnchor: [15, 15]
       });
-
-      markers[v.id] = L.marker([v.lat, v.lng], { icon: icon })
+      markers[v.id] = L.marker(v.rota[0], { icon: icon })
         .addTo(map)
-        .bindTooltip(v.name + " - Placa: " + v.placa, { permanent: false, direction: "top" });
-
-      markersStreet[v.id] = L.marker([v.lat, v.lng], { icon: icon })
-        .addTo(mapStreet)
         .bindTooltip(v.name + " - Placa: " + v.placa, { permanent: false, direction: "top" });
     });
 
-    // Painel Rotas
-    function atualizarPainel() {
-      const painel = document.getElementById('painel');
+    function atualizarPainelRotas() {
+      const painel = document.getElementById('painelRotas');
       painel.innerHTML = '<h3>Rotas de Transporte</h3>';
       vehicles.forEach(v => {
         const tempoAtual = ((Date.now() - v.tempoInicio) / 1000).toFixed(0);
@@ -186,7 +147,6 @@
         div.innerHTML = `
           <strong>${v.name}</strong><br>
           Placa: ${v.placa}<br>
-          Local: ${v.localAtual}<br>
           Status: ${v.status}<br>
           Tempo ${v.status.toLowerCase()}: ${tempoAtual}s<br>
           Entregas: ${v.entregas}
@@ -195,8 +155,7 @@
       });
     }
 
-    // Painel Segurança
-    function atualizarPainelSeguranca() {
+      function atualizarPainelSeguranca() {
       const painel = document.getElementById('painelSeguranca');
       painel.innerHTML = '<h3>Painel de Segurança</h3>';
       vehicles.forEach(v => {
@@ -215,7 +174,7 @@
       });
     }
 
-    atualizarPainel();
+    atualizarPainelRotas();
     atualizarPainelSeguranca();
 
     // Imagens fictícias
@@ -291,7 +250,6 @@
       document.getElementById('tempoRodando').innerText = (somaRodando / count).toFixed(1);
       document.getElementById('tempoParado').innerText = (somaParado / count).toFixed(1);
 
-      // Atualiza gráficos
       chartEntregas.data.datasets[0].data = vehicles.map(v => v.entregas);
       chartEntregas.update();
 
@@ -322,18 +280,16 @@
       atualizarDashboard();
     }
 
-    // Simulação de movimento e entregas
+    // Simulação de movimento ao longo das rotas
     setInterval(() => {
       vehicles.forEach(v => {
         if (v.status === "Rodando") {
-          v.lat += (Math.random() - 0.5) * 0.01;
-          v.lng += (Math.random() - 0.5) * 0.01;
-          markers[v.id].setLatLng([v.lat, v.lng]);
-          markersStreet[v.id].setLatLng([v.lat, v.lng]);
+          v.posIndex = (v.posIndex + 1) % v.rota.length;
+          let pos = v.rota[v.posIndex];
+          markers[v.id].setLatLng(pos);
 
-          if (Math.random() < 0.1) {
+          if (v.posIndex === v.rota.length - 1) {
             v.status = "Parado";
-            v.localAtual = v.rota[Math.floor(Math.random() * v.rota.length)];
             v.tempoInicio = Date.now();
             v.entregas++;
             totalEntregas++;
@@ -341,16 +297,15 @@
         } else {
           if (Math.random() < 0.3) {
             v.status = "Rodando";
-            v.localAtual = "Em rota para próximo cliente";
+            v.posIndex = 0;
             v.tempoInicio = Date.now();
           }
         }
       });
-      atualizarPainel();
+      atualizarPainelRotas();
       atualizarDashboard();
     }, 3000);
 
-    // Atualiza dashboard periodicamente
     setInterval(atualizarDashboard, 5000);
   </script>
 </body>
