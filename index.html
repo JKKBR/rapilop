@@ -5,18 +5,43 @@
   <meta charset="utf-8" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <style>
-    body { font-family: Arial, sans-serif; }
+    body { 
+      font-family: Arial, sans-serif; 
+      background-color: #f4f4f4; 
+      margin: 0; 
+      padding: 0;
+    }
     h1 { text-align:center; margin-bottom:5px; }
     h2 { text-align:center; margin-top:0; font-weight:normal; color:#555; }
+    #resumo {
+      text-align:center; 
+      margin:20px auto; 
+      max-width:800px; 
+      background:#ffffff; 
+      padding:20px; 
+      border-radius:8px; 
+      box-shadow:0 2px 6px rgba(0,0,0,0.1);
+    }
     #map { height: 400px; width: 70%; float: left; }
-    #painel { width: 28%; float: right; padding: 10px; border-left: 1px solid #ccc; overflow-y: scroll; height: 400px; }
+    #painel { width: 28%; float: right; padding: 10px; border-left: 1px solid #ccc; overflow-y: scroll; height: 400px; background:#fff; }
     .veiculo { margin-bottom: 10px; padding: 5px; border: 1px solid #ddd; }
     .rodando { background-color: #e0ffe0; }
     .parado { background-color: #ffe0e0; }
     #mapStreet { height: 400px; width: 70%; float: left; margin-top:20px; }
-    #painelSeguranca { width: 28%; float: right; height: 400px; overflow-y: scroll; border-left:1px solid #ccc; padding:10px; margin-top:20px; }
-    #cameraView { width:100%; height:300px; object-fit:cover; border:1px solid #ccc; margin-top:20px; clear:both; }
-    #dashboard { border:1px solid #ccc; padding:10px; margin-top:20px; clear:both; }
+    #painelSeguranca { width: 28%; float: right; height: 400px; overflow-y: scroll; border-left:1px solid #ccc; padding:10px; margin-top:20px; background:#fff; }
+    #cameraView { width:100%; height:300px; object-fit:cover; border:1px solid #ccc; margin-top:20px; clear:both; background:#fff; }
+    #dashboard { display:flex; justify-content:space-around; flex-wrap:wrap; margin-top:20px; clear:both; }
+    .card {
+      background:#fff;
+      border-radius:8px;
+      box-shadow:0 2px 6px rgba(0,0,0,0.1);
+      padding:15px;
+      margin:10px;
+      flex:1 1 200px;
+      text-align:center;
+    }
+    .card h4 { margin:0 0 10px; color:#333; }
+    .card span { font-size:20px; font-weight:bold; }
     .custom-icon div {
       background:#007bff;
       color:white;
@@ -34,6 +59,22 @@
 <body>
   <h1>Projeto Simulador de Frota</h1>
   <h2>Juntando Redes de Computadores, Logística e CFTV</h2>
+
+  <!-- Resumo -->
+  <div id="resumo">
+    <h3>Resumo do Projeto</h3>
+    <p>
+      O <strong>Simulador de Frota</strong> integra conceitos de <strong>redes de computadores</strong>, 
+      <strong>logística</strong> e <strong>CFTV</strong> em um ambiente interativo. 
+      Cada veículo fictício percorre rotas, realiza entregas e alterna entre estados de rodando e parado, 
+      enquanto o painel de segurança simula câmeras embarcadas e filmagens antigas.
+    </p>
+    <p>
+      O objetivo é demonstrar como diferentes áreas da tecnologia podem se unir para criar soluções completas 
+      de rastreamento e segurança, oferecendo indicadores estratégicos como número de entregas, tempo médio de operação 
+      e verificações de segurança.
+    </p>
+  </div>
   
   <!-- Mapa principal -->
   <div id="map"></div>
@@ -55,13 +96,31 @@
   <!-- Dashboard -->
   <h3 style="text-align:center; clear:both;">Dashboard Logístico</h3>
   <div id="dashboard">
-    <p>Total de entregas hoje: <span id="totalEntregas">0</span></p>
-    <p>Total de verificações de segurança: <span id="totalVerificacoes">0</span></p>
-    <p>Tempo médio rodando: <span id="tempoRodando">0</span> s</p>
-    <p>Tempo médio parado: <span id="tempoParado">0</span> s</p>
+    <div class="card" style="border-top:4px solid #007bff;">
+      <h4>Total de Entregas</h4>
+      <span id="totalEntregas">0</span>
+    </div>
+    <div class="card" style="border-top:4px solid #dc3545;">
+      <h4>Verificações de Segurança</h4>
+      <span id="totalVerificacoes">0</span>
+    </div>
+    <div class="card" style="border-top:4px solid #28a745;">
+      <h4>Tempo Médio Rodando</h4>
+      <span id="tempoRodando">0</span> s
+    </div>
+    <div class="card" style="border-top:4px solid #ffc107;">
+      <h4>Tempo Médio Parado</h4>
+      <span id="tempoParado">0</span> s
+    </div>
   </div>
 
+  <!-- Gráficos -->
+  <canvas id="graficoEntregas" width="400" height="200"></canvas>
+  <canvas id="graficoVerificacoes" width="400" height="200"></canvas>
+  <canvas id="graficoTempo" width="400" height="200"></canvas>
+
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
     // Inicializa mapas
     var map = L.map('map').setView([-22.9068, -43.1729], 12);
@@ -97,7 +156,7 @@
       });
     }
 
-    // Marcadores com ícones personalizados
+       // Marcadores com ícones personalizados
     var markers = {}, markersStreet = {};
     vehicles.forEach(v => {
       var icon = L.divIcon({
@@ -171,9 +230,52 @@
       "https://picsum.photos/800/300?random=203"
     ];
 
-       // Dashboard
+    // Dashboard
     let totalEntregas = 0;
     let totalVerificacoes = 0;
+
+    // Gráficos Chart.js
+    const ctxEntregas = document.getElementById('graficoEntregas').getContext('2d');
+    const ctxVerificacoes = document.getElementById('graficoVerificacoes').getContext('2d');
+    const ctxTempo = document.getElementById('graficoTempo').getContext('2d');
+
+    let chartEntregas = new Chart(ctxEntregas, {
+      type: 'bar',
+      data: {
+        labels: vehicles.map(v => v.name),
+        datasets: [{
+          label: 'Entregas por veículo',
+          data: vehicles.map(v => v.entregas),
+          backgroundColor: '#007bff'
+        }]
+      }
+    });
+
+    let chartVerificacoes = new Chart(ctxVerificacoes, {
+      type: 'pie',
+      data: {
+        labels: vehicles.map(v => v.name),
+        datasets: [{
+          label: 'Verificações de segurança',
+          data: vehicles.map(v => v.verificacoes),
+          backgroundColor: vehicles.map(() => '#dc3545')
+        }]
+      }
+    });
+
+    let chartTempo = new Chart(ctxTempo, {
+      type: 'line',
+      data: {
+        labels: ["Rodando", "Parado"],
+        datasets: [{
+          label: 'Tempo médio (s)',
+          data: [0, 0],
+          borderColor: '#28a745',
+          backgroundColor: '#ffc107',
+          fill: false
+        }]
+      }
+    });
 
     function atualizarDashboard() {
       document.getElementById('totalEntregas').innerText = totalEntregas;
@@ -188,6 +290,19 @@
       });
       document.getElementById('tempoRodando').innerText = (somaRodando / count).toFixed(1);
       document.getElementById('tempoParado').innerText = (somaParado / count).toFixed(1);
+
+      // Atualiza gráficos
+      chartEntregas.data.datasets[0].data = vehicles.map(v => v.entregas);
+      chartEntregas.update();
+
+      chartVerificacoes.data.datasets[0].data = vehicles.map(v => v.verificacoes);
+      chartVerificacoes.update();
+
+      chartTempo.data.datasets[0].data = [
+        (somaRodando / count).toFixed(1),
+        (somaParado / count).toFixed(1)
+      ];
+      chartTempo.update();
     }
 
     // Funções de câmera
