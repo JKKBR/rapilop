@@ -5,23 +5,35 @@
   <meta charset="utf-8" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <style>
-    #map { height: 500px; width: 70%; float: left; }
-    #painel { width: 28%; float: right; padding: 10px; border-left: 1px solid #ccc; overflow-y: scroll; height: 500px; }
+    #map { height: 400px; width: 70%; float: left; }
+    #painel { width: 28%; float: right; padding: 10px; border-left: 1px solid #ccc; overflow-y: scroll; height: 400px; }
     .veiculo { margin-bottom: 10px; padding: 5px; border: 1px solid #ddd; }
     .rodando { background-color: #e0ffe0; }
     .parado { background-color: #ffe0e0; }
-    #mapStreet { height: 400px; width: 100%; margin-top: 20px; clear: both; }
+    #mapStreet { height: 400px; width: 70%; float: left; margin-top:20px; }
+    #painelSeguranca { width: 28%; float: right; height: 400px; overflow-y: scroll; border-left:1px solid #ccc; padding:10px; margin-top:20px; }
+    #cameraView { width:100%; height:300px; object-fit:cover; border:1px solid #ccc; margin-top:20px; clear:both; }
   </style>
 </head>
 <body>
   <h2 style="text-align:center;">Simulador de Frota - 20 Veículos</h2>
+  
+  <!-- Mapa principal -->
   <div id="map"></div>
   <div id="painel">
     <h3>Rotas de Transporte</h3>
   </div>
 
-  <h3 style="text-align:center;">Visão da Rua</h3>
+  <!-- Mapa secundário -->
+  <h3 style="text-align:center; clear:both;">Mapa Secundário - Frota</h3>
   <div id="mapStreet"></div>
+  <div id="painelSeguranca">
+    <h3>Painel de Segurança</h3>
+  </div>
+
+  <!-- Câmera embarcada -->
+  <h3 style="text-align:center; clear:both;">Câmera Embarcada</h3>
+  <img id="cameraView" src="" alt="Câmera embarcada" />
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script>
@@ -31,8 +43,8 @@
       attribution: 'Map data © OpenStreetMap'
     }).addTo(map);
 
-    // Inicializa mapa secundário (visão da rua)
-    var mapStreet = L.map('mapStreet').setView([-22.9068, -43.1729], 16);
+    // Inicializa mapa secundário
+    var mapStreet = L.map('mapStreet').setView([-22.9068, -43.1729], 12);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: 'Map data © OpenStreetMap'
     }).addTo(mapStreet);
@@ -63,19 +75,19 @@
       });
     }
 
-    // Marcadores
+    // Marcadores mapa principal
     var markers = {};
     vehicles.forEach(v => {
       markers[v.id] = L.marker([v.lat, v.lng]).addTo(map).bindPopup(v.name + " - Placa: " + v.placa);
-
-      // Evento de clique no marcador -> atualiza mapa secundário
-      markers[v.id].on('click', () => {
-        mapStreet.setView([v.lat, v.lng], 17); // zoom maior para visão de rua
-        L.marker([v.lat, v.lng]).addTo(mapStreet).bindPopup("Câmera do " + v.name).openPopup();
-      });
     });
 
-    // Atualizar painel
+    // Marcadores mapa secundário
+    var markersStreet = {};
+    vehicles.forEach(v => {
+      markersStreet[v.id] = L.marker([v.lat, v.lng]).addTo(mapStreet).bindPopup(v.name + " - Placa: " + v.placa);
+    });
+
+    // Atualizar painel de rotas
     function atualizarPainel() {
       const painel = document.getElementById('painel');
       painel.innerHTML = '<h3>Rotas de Transporte</h3>';
@@ -96,6 +108,51 @@
 
     atualizarPainel();
 
+    // Atualizar painel de segurança
+    function atualizarPainelSeguranca() {
+      const painel = document.getElementById('painelSeguranca');
+      painel.innerHTML = '<h3>Painel de Segurança</h3>';
+      vehicles.forEach(v => {
+        const div = document.createElement('div');
+        div.className = 'veiculo';
+        div.style.border = "1px solid #ddd";
+        div.style.marginBottom = "10px";
+        div.style.padding = "5px";
+        div.innerHTML = `
+          <strong>${v.name}</strong><br>
+          Placa: ${v.placa}<br>
+          <button onclick="verCamera(${v.id})">Ver câmera</button>
+          <button onclick="verHistorico(${v.id})">Filmagens antigas</button>
+        `;
+        painel.appendChild(div);
+      });
+    }
+
+    atualizarPainelSeguranca();
+
+    // Imagens fictícias
+    const imagensCamera = [
+      "https://picsum.photos/800/300?random=101",
+      "https://picsum.photos/800/300?random=102",
+      "https://picsum.photos/800/300?random=103"
+    ];
+    const imagensHistorico = [
+      "https://picsum.photos/800/300?random=201",
+      "https://picsum.photos/800/300?random=202",
+      "https://picsum.photos/800/300?random=203"
+    ];
+
+    // Funções de câmera
+    function verCamera(id) {
+      const camera = document.getElementById('cameraView');
+      camera.src = imagensCamera[Math.floor(Math.random() * imagensCamera.length)];
+    }
+
+    function verHistorico(id) {
+      const camera = document.getElementById('cameraView');
+      camera.src = imagensHistorico[Math.floor(Math.random() * imagensHistorico.length)];
+    }
+
     // Simulação de movimento
     setInterval(() => {
       vehicles.forEach(v => {
@@ -103,6 +160,7 @@
           v.lat += (Math.random() - 0.5) * 0.01;
           v.lng += (Math.random() - 0.5) * 0.01;
           markers[v.id].setLatLng([v.lat, v.lng]);
+          markersStreet[v.id].setLatLng([v.lat, v.lng]);
 
           if (Math.random() < 0.1) {
             v.status = "Parado";
